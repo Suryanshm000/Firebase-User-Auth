@@ -1,9 +1,7 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from .serializers import UserSerializer, ProfileUpdateSerializer
-from django.views.decorators.csrf import csrf_exempt
+from .serializers import UserSerializer
 from firebase_admin import auth, credentials
-from django.contrib.auth import authenticate
 import firebase_admin
 import os
 from dotenv import load_dotenv
@@ -36,9 +34,7 @@ class CreateUserView(APIView):
         serializer = UserSerializer(data=request.data)
         if serializer.is_valid():
             data = serializer.validated_data
-            # email = data["email"]
             password = data["password"]
-            # username = data.["username"]
             if len(password) < 8:
                 return Response({
                         "error": "This password is too short. It must contain at least 8 characters"},
@@ -55,7 +51,6 @@ class LoginView(APIView):
     def post(self, request):
         username = request.POST.get('username')
         password = request.POST.get('password')
-        # user = authenticate(username=username, password=password)
         try:
             user = CustomUser.objects.get(username=username)
             if user.password != password:
@@ -65,15 +60,12 @@ class LoginView(APIView):
 
                 # Return the custom token in the response
                 return Response({'custom_token': custom_token, 'username': username}, status=status.HTTP_200_OK)
-        # except DoesNotExist:
-        #     return Response({'error': 'User not found'}, status=401)
         except:
             return Response({'error': 'User not found'}, status=status.HTTP_400_BAD_REQUEST)
         
 
 class ProfileView(APIView):
 
-    permission_classes = [ IsAuthenticated ]
     authentication_classes = [FirebaseAuthentication]
 
     def get(self, request):
@@ -96,8 +88,9 @@ class ProfileView(APIView):
 
 class ProfileUpdateView(APIView):
 
+    authentication_classes = [FirebaseAuthentication]
+
     def post(self, request):
-        # serializer = ProfileUpdateSerializer(data=request.data)
         username = request.data.get('username')
         new_username = request.data.get('new_username')
         first_name = request.data.get('first_name')
@@ -112,9 +105,4 @@ class ProfileUpdateView(APIView):
         user.first_name = first_name
         user.last_name = last_name
         user.save()
-        # if serializer.is_valid():
-        #     user.username = new_username
-        #     user = serializer.save()
         return Response({'email': user.email, 'username': user.username}, status=status.HTTP_200_OK)
-
-        # return Response(serializer.errors)
